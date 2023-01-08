@@ -62,7 +62,8 @@
   "dependencies": {
     "electron-log": "^4.3.5",
     "electron-store": "^8.0.0",
-    "electron-updater": "^5.2.1"
+    "electron-updater": "^5.2.1",
+    "ps-node": "^0.1.6"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^22.0.2",
@@ -72,6 +73,7 @@
     "@types/clean-css": "^4.2.4",
     "@types/html-minifier": "^4.0.0",
     "@types/node": "^18.7.14",
+    "@types/ps-node": "^0.1.1",
     "@typescript-eslint/eslint-plugin": "^5.9.0",
     "@typescript-eslint/parser": "^5.9.0",
     "clean-css": "^5.1.2",

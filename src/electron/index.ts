@@ -1,15 +1,18 @@
 import {
   app,
   BrowserWindow,
+  ipcMain,
   Notification,
   // nativeImage
 } from "electron";
-import { join } from "path";
+import path, { join } from "path";
 import { parse } from "url";
 import { autoUpdater } from "electron-updater";
 
 import logger from "./utils/logger";
 import settings from "./utils/settings";
+
+import ps from "ps-node";
 
 const isProd = process.env.NODE_ENV === "production" || app.isPackaged;
 
@@ -21,6 +24,24 @@ logger.info(settings.get("check") ? "Settings store works correctly." : "Setting
 let mainWindow: BrowserWindow | null;
 let notification: Notification | null;
 
+function getProcesses(): Promise<ps.Program[]> {
+  return new Promise((resolve, reject) => {
+    ps.lookup({}, (err, result) => {
+      if (err) return reject(err);
+      return resolve(result);
+    });
+  });
+}
+
+function killProcess(pid: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    ps.kill(pid, err => {
+      if (err) return reject(err);
+      return resolve();
+    })
+  });
+}
+
 const createWindow = () => {
   mainWindow = new BrowserWindow({
     width: 900,
@@ -28,6 +49,7 @@ const createWindow = () => {
     webPreferences: {
       devTools: isProd ? false : true,
       contextIsolation: true,
+      preload: path.join(__dirname, "./utils/preload.js"),
     },
   });
 
@@ -35,9 +57,9 @@ const createWindow = () => {
     // process.env.NODE_ENV === "production"
     isProd
       ? // in production, use the statically build version of our application
-        `file://${join(__dirname, "public", "index.html")}`
+      `file://${join(__dirname, "public", "index.html")}`
       : // in dev, target the host and port of the local rollup web server
-        "http://localhost:5000";
+      "http://localhost:5000";
 
   mainWindow.loadURL(url).catch((err) => {
     logger.error(JSON.stringify(err));
@@ -46,12 +68,17 @@ const createWindow = () => {
 
   if (!isProd) mainWindow.webContents.openDevTools();
 
+  ipcMain.handle('all-processes', getProcesses);
+  ipcMain.handle('kill-process', (_ev, pid) => killProcess(pid));
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
 };
 
+
 app.on("ready", createWindow);
+
 
 // those two events are completely optional to subscrbe to, but that's a common way to get the
 // user experience people expect to have on macOS: do not quit the application directly
